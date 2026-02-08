@@ -1,0 +1,15 @@
+# Частота обновления sidebar в тиках (20 тиков = 1 секунда)
+update-ticks: 20
+
+# Заголовок sidebar
+title: "&x&8&9&C&F&F&F&l✦ Профиль ✦"
+
+# Строки внутри sidebar. Используются PlaceholderAPI переменные.
+lines:
+  - "&8• &7Ник: &f%player_name%"
+  - "&8• &7Осн. класс: &f%classlevel_main_class%"
+  - "&8  &7Ключ: &f%classlevel_main_class_key%"
+  - "&8  &7Уровень: &f%classlevel_main_level%"
+  - "&8• &7Боев. класс: &f%classlevel_combat_class%"
+  - "&8  &7Ключ: &f%classlevel_combat_class_key%"
+  - "&8  &7Уровень: &f%classlevel_combat_level%"
