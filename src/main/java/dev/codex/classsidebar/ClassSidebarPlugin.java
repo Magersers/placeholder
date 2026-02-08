@@ -97,7 +97,7 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         for (String line : lines) {
             String unique = colorize(trim(line, 32)) + ChatColor.values()[score % ChatColor.values().length];
             Score boardScore = objective.getScore(unique);
-            boardScore.setScore(score);
+            boardScore.setScore(0);
             hideNumbers(boardScore);
             score--;
         }
