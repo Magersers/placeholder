@@ -15,11 +15,16 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
+    private static final String[] ANIM_COLORS = {"&b", "&3", "&9", "&d", "&5"};
+
     private BukkitTask updateTask;
+    private int animationTick;
 
     @Override
     public void onEnable() {
@@ -39,6 +44,7 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
 
         long period = Math.max(10L, getConfig().getLong("update-ticks", 20L));
         updateTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            animationTick++;
             for (Player player : Bukkit.getOnlinePlayers()) {
                 applySidebar(player);
             }
@@ -72,31 +78,85 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective objective = scoreboard.registerNewObjective("class_sidebar", Criteria.DUMMY, colorize(getConfig().getString("title", "&b✦ Профиль ✦")));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        hideNumbers(objective);
 
-        List<String> configuredLines = getConfig().getStringList("lines");
-        List<String> lines = configuredLines.isEmpty() ? defaultLines() : configuredLines;
+        int mainLevel = parseLevel(placeholder(player, "%classlevel_main_level%"));
+        int combatLevel = parseLevel(placeholder(player, "%classlevel_combat_level%"));
+
+        List<String> lines = new ArrayList<>();
+        lines.add("&8&m--------------");
+        lines.add("&7Ник: &f" + player.getName());
+        lines.add("&7Осн: &b" + cleanPlaceholder(placeholder(player, "%classlevel_main_class%")));
+        lines.add("&7Ур: " + styleLevel(mainLevel, animationTick));
+        lines.add("&7Бой: &d" + cleanPlaceholder(placeholder(player, "%classlevel_combat_class%")));
+        lines.add("&7Ур: " + styleLevel(combatLevel, animationTick + 2));
+        lines.add("&8&m--------------");
 
         int score = lines.size();
         for (String line : lines) {
-            String parsed = PlaceholderAPI.setPlaceholders(player, line);
-            String colored = trim(colorize(parsed), 40);
-            objective.getScore(colored + ChatColor.values()[score % ChatColor.values().length]).setScore(score);
+            String unique = colorize(trim(line, 32)) + ChatColor.values()[score % ChatColor.values().length];
+            objective.getScore(unique).setScore(score);
             score--;
         }
 
         player.setScoreboard(scoreboard);
     }
 
-    private List<String> defaultLines() {
-        List<String> lines = new ArrayList<>();
-        lines.add("&8&l• &7Ник: &f%player_name%");
-        lines.add("&8&l• &7Осн. класс: &f%classlevel_main_class%");
-        lines.add("&8  &7Ключ: &f%classlevel_main_class_key%");
-        lines.add("&8  &7Уровень: &f%classlevel_main_level%");
-        lines.add("&8&l• &7Боев. класс: &f%classlevel_combat_class%");
-        lines.add("&8  &7Ключ: &f%classlevel_combat_class_key%");
-        lines.add("&8  &7Уровень: &f%classlevel_combat_level%");
-        return lines;
+    private void hideNumbers(Objective objective) {
+        try {
+            for (Method method : objective.getClass().getMethods()) {
+                String name = method.getName().toLowerCase(Locale.ROOT);
+                if (!(name.equals("numberformat") || name.equals("setnumberformat")) || method.getParameterCount() != 1) {
+                    continue;
+                }
+
+                Class<?> formatType = method.getParameterTypes()[0];
+                Method blankMethod = formatType.getMethod("blank");
+                Object blankFormat = blankMethod.invoke(null);
+                method.invoke(objective, blankFormat);
+                return;
+            }
+        } catch (Throwable ignored) {
+            // Старые версии API могут не поддерживать скрытие чисел.
+        }
+    }
+
+    private String placeholder(Player player, String placeholder) {
+        return PlaceholderAPI.setPlaceholders(player, placeholder);
+    }
+
+    private int parseLevel(String raw) {
+        try {
+            return Integer.parseInt(cleanPlaceholder(raw).replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private String styleLevel(int level, int phase) {
+        if (level >= 10) {
+            return animatedGradient(String.valueOf(level), phase);
+        }
+        return "&f" + level;
+    }
+
+    private String animatedGradient(String text, int phase) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            int colorIndex = Math.floorMod(phase + i, ANIM_COLORS.length);
+            out.append(ANIM_COLORS[colorIndex]).append(text.charAt(i));
+        }
+        return out.toString();
+    }
+
+    private String cleanPlaceholder(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        if (value.startsWith("%") && value.endsWith("%")) {
+            return "-";
+        }
+        return value;
     }
 
     private String colorize(String text) {
