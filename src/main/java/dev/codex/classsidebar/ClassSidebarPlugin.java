@@ -17,6 +17,7 @@ import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -79,86 +80,95 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective objective = scoreboard.registerNewObjective("class_sidebar", Criteria.DUMMY, colorize(getConfig().getString("title", "&b✦ Профиль ✦")));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        hideNumbers(objective);
 
         int mainLevel = parseLevel(placeholder(player, "%classlevel_main_level%"));
         int combatLevel = parseLevel(placeholder(player, "%classlevel_combat_level%"));
+        String emeralds = cleanPlaceholder(placeholder(player, "%rep_bezumrudy%"));
 
         List<String> lines = new ArrayList<>();
         lines.add("&8&m━━━━━━━━━━━━");
-        lines.add("&7Ник: &f" + player.getName());
-        lines.add("&8");
         lines.add("&b&lКлассы");
         lines.add("&7Осн: &b" + cleanPlaceholder(placeholder(player, "%classlevel_main_class%")));
         lines.add("&7Ур: " + styleLevel(mainLevel, animationTick));
         lines.add("&7Бой: &d" + cleanPlaceholder(placeholder(player, "%classlevel_combat_class%")));
         lines.add("&7Ур: " + styleLevel(combatLevel, animationTick + 2));
-        lines.add("&8");
         lines.add("&8▸ &7Подробнее: &f/lvl");
+        lines.add("&8");
+        lines.add("&a&lО игроке");
+        lines.add("&7Ник: &f" + player.getName());
+        lines.add("&7Безумруды: &a" + emeralds);
+        lines.add("&7Жетон: &8(скоро)");
         lines.add("&8&m━━━━━━━━━━━━");
 
         int score = lines.size();
         for (String line : lines) {
-            String unique = colorize(trim(line, 32)) + ChatColor.values()[score % ChatColor.values().length];
+            String unique = colorize(trim(line, 40)) + ChatColor.values()[score % ChatColor.values().length];
             Score boardScore = objective.getScore(unique);
             boardScore.setScore(score);
-            hideNumbers(boardScore);
             score--;
         }
 
+        hideNumbersEverywhere(objective, scoreboard);
         player.setScoreboard(scoreboard);
     }
 
-    private void hideNumbers(Objective objective) {
-        try {
-            Object blankFormat = getBlankNumberFormat();
-            if (blankFormat == null) {
-                return;
-            }
-
-            for (Method method : objective.getClass().getMethods()) {
-                String name = method.getName().toLowerCase(Locale.ROOT);
-                if ((name.equals("numberformat") || name.equals("setnumberformat"))
-                        && method.getParameterCount() == 1
-                        && method.getParameterTypes()[0].isInstance(blankFormat)) {
-                    method.invoke(objective, blankFormat);
-                    return;
-                }
-            }
-        } catch (Throwable ignored) {
-            // Старые версии API могут не поддерживать скрытие чисел.
+    private void hideNumbersEverywhere(Objective objective, Scoreboard scoreboard) {
+        invokeNumberFormatSetter(objective);
+        for (String entry : scoreboard.getEntries()) {
+            invokeNumberFormatSetter(objective.getScore(entry));
         }
     }
 
-    private void hideNumbers(Score score) {
+    private void invokeNumberFormatSetter(Object target) {
         try {
-            Object blankFormat = getBlankNumberFormat();
-            if (blankFormat == null) {
+            for (Method method : target.getClass().getMethods()) {
+                String name = method.getName().toLowerCase(Locale.ROOT);
+                if (!(name.equals("numberformat") || name.equals("setnumberformat")) || method.getParameterCount() != 1) {
+                    continue;
+                }
+
+                Object blankFormat = resolveBlankFormat(method.getParameterTypes()[0]);
+                if (blankFormat == null) {
+                    continue;
+                }
+
+                method.invoke(target, blankFormat);
                 return;
             }
-
-            for (Method method : score.getClass().getMethods()) {
-                String name = method.getName().toLowerCase(Locale.ROOT);
-                if ((name.equals("numberformat") || name.equals("setnumberformat"))
-                        && method.getParameterCount() == 1
-                        && method.getParameterTypes()[0].isInstance(blankFormat)) {
-                    method.invoke(score, blankFormat);
-                    return;
-                }
-            }
         } catch (Throwable ignored) {
-            // В API без score-level number format просто продолжаем без падения.
+            // На некоторых API нет нужных методов.
         }
     }
 
-    private Object getBlankNumberFormat() {
+    private Object resolveBlankFormat(Class<?> targetType) {
         try {
-            Class<?> formatClass = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
-            Method blank = formatClass.getMethod("blank");
-            return blank.invoke(null);
+            Method blank = targetType.getMethod("blank");
+            if (Modifier.isStatic(blank.getModifiers())) {
+                return blank.invoke(null);
+            }
         } catch (Throwable ignored) {
-            return null;
+            // Пытаемся через альтернативные class names ниже.
         }
+
+        String[] candidates = {
+                "io.papermc.paper.scoreboard.numbers.NumberFormat",
+                "org.bukkit.scoreboard.NumberFormat"
+        };
+
+        for (String candidate : candidates) {
+            try {
+                Class<?> clazz = Class.forName(candidate);
+                if (!targetType.isAssignableFrom(clazz)) {
+                    continue;
+                }
+                Method blank = clazz.getMethod("blank");
+                return blank.invoke(null);
+            } catch (Throwable ignored) {
+                // Пробуем следующий кандидат.
+            }
+        }
+
+        return null;
     }
 
     private String placeholder(Player player, String placeholder) {
