@@ -85,19 +85,23 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         int combatLevel = parseLevel(placeholder(player, "%classlevel_combat_level%"));
 
         List<String> lines = new ArrayList<>();
-        lines.add("&8&m--------------");
+        lines.add("&8&m━━━━━━━━━━━━");
         lines.add("&7Ник: &f" + player.getName());
+        lines.add("&8");
+        lines.add("&b&lКлассы");
         lines.add("&7Осн: &b" + cleanPlaceholder(placeholder(player, "%classlevel_main_class%")));
         lines.add("&7Ур: " + styleLevel(mainLevel, animationTick));
         lines.add("&7Бой: &d" + cleanPlaceholder(placeholder(player, "%classlevel_combat_class%")));
         lines.add("&7Ур: " + styleLevel(combatLevel, animationTick + 2));
-        lines.add("&8&m--------------");
+        lines.add("&8");
+        lines.add("&8▸ &7Подробнее: &f/lvl");
+        lines.add("&8&m━━━━━━━━━━━━");
 
         int score = lines.size();
         for (String line : lines) {
             String unique = colorize(trim(line, 32)) + ChatColor.values()[score % ChatColor.values().length];
             Score boardScore = objective.getScore(unique);
-            boardScore.setScore(0);
+            boardScore.setScore(score);
             hideNumbers(boardScore);
             score--;
         }
