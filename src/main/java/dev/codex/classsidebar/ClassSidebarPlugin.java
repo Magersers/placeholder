@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 import java.lang.reflect.Method;
@@ -95,7 +96,9 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         int score = lines.size();
         for (String line : lines) {
             String unique = colorize(trim(line, 32)) + ChatColor.values()[score % ChatColor.values().length];
-            objective.getScore(unique).setScore(score);
+            Score boardScore = objective.getScore(unique);
+            boardScore.setScore(score);
+            hideNumbers(boardScore);
             score--;
         }
 
@@ -104,20 +107,53 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
 
     private void hideNumbers(Objective objective) {
         try {
+            Object blankFormat = getBlankNumberFormat();
+            if (blankFormat == null) {
+                return;
+            }
+
             for (Method method : objective.getClass().getMethods()) {
                 String name = method.getName().toLowerCase(Locale.ROOT);
-                if (!(name.equals("numberformat") || name.equals("setnumberformat")) || method.getParameterCount() != 1) {
-                    continue;
+                if ((name.equals("numberformat") || name.equals("setnumberformat"))
+                        && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0].isInstance(blankFormat)) {
+                    method.invoke(objective, blankFormat);
+                    return;
                 }
-
-                Class<?> formatType = method.getParameterTypes()[0];
-                Method blankMethod = formatType.getMethod("blank");
-                Object blankFormat = blankMethod.invoke(null);
-                method.invoke(objective, blankFormat);
-                return;
             }
         } catch (Throwable ignored) {
             // Старые версии API могут не поддерживать скрытие чисел.
+        }
+    }
+
+    private void hideNumbers(Score score) {
+        try {
+            Object blankFormat = getBlankNumberFormat();
+            if (blankFormat == null) {
+                return;
+            }
+
+            for (Method method : score.getClass().getMethods()) {
+                String name = method.getName().toLowerCase(Locale.ROOT);
+                if ((name.equals("numberformat") || name.equals("setnumberformat"))
+                        && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0].isInstance(blankFormat)) {
+                    method.invoke(score, blankFormat);
+                    return;
+                }
+            }
+        } catch (Throwable ignored) {
+            // В API без score-level number format просто продолжаем без падения.
+        }
+    }
+
+    private Object getBlankNumberFormat() {
+        try {
+            Class<?> formatClass = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
+            Method blank = formatClass.getMethod("blank");
+            return blank.invoke(null);
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 
