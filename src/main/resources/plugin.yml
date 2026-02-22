@@ -1,7 +1,7 @@
 name: ClassSidebar
 version: 1.0.0
 main: dev.codex.classsidebar.ClassSidebarPlugin
-api-version: '1.21'
+api-version: '1.20'
 author: codex
 description: Compact class sidebar with PlaceholderAPI values
 softdepend: [PlaceholderAPI]
