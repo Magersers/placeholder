@@ -5,7 +5,8 @@
 Что показывает:
 - ник игрока;
 - основной класс + уровень;
-- боевой класс + уровень.
+- боевой класс + уровень;
+- золото и осколки хаоса (из PlaceholderAPI).
 
 Особенности:
 - без "ключей" класса (как просили);
@@ -20,6 +21,10 @@
 - `%classlevel_main_level%`
 - `%classlevel_combat_class%`
 - `%classlevel_combat_level%`
+- `%ecoplugin_gold%`
+- `%ecoplugin_shards%`
+
+Настройка отображения валют находится в `config.yml` (секция `currency`): можно менять placeholder и формат строки (`{value}`).
 
 ## Сборка
 

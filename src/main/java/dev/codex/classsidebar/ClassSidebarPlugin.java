@@ -83,7 +83,12 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
 
         int mainLevel = parseLevel(placeholder(player, "%classlevel_main_level%"));
         int combatLevel = parseLevel(placeholder(player, "%classlevel_combat_level%"));
-        String emeralds = cleanPlaceholder(placeholder(player, "%rep_bezumrudy%"));
+
+        String gold = resolveConfiguredPlaceholder(player, "currency.gold.placeholder", "%ecoplugin_gold%");
+        String shards = resolveConfiguredPlaceholder(player, "currency.shards.placeholder", "%ecoplugin_shards%");
+
+        String goldLine = formatCurrencyLine("currency.gold.format", "&7Золото: &6{value}", gold);
+        String shardsLine = formatCurrencyLine("currency.shards.format", "&7Осколки хаоса: &d{value}", shards);
 
         List<String> lines = new ArrayList<>();
         lines.add("&8&m━━━━━━━━━━━━");
@@ -96,8 +101,8 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
         lines.add("&8");
         lines.add("&a&lО игроке");
         lines.add("&7Ник: &f" + player.getName());
-        lines.add("&7Безумруды: &a" + emeralds);
-        lines.add("&7Жетон: &8(скоро)");
+        lines.add(goldLine);
+        lines.add(shardsLine);
         lines.add("&8&m━━━━━━━━━━━━");
 
         int score = lines.size();
@@ -110,6 +115,16 @@ public final class ClassSidebarPlugin extends JavaPlugin implements Listener {
 
         hideNumbersEverywhere(objective, scoreboard);
         player.setScoreboard(scoreboard);
+    }
+
+    private String resolveConfiguredPlaceholder(Player player, String configPath, String fallback) {
+        String configuredPlaceholder = getConfig().getString(configPath, fallback);
+        return cleanPlaceholder(placeholder(player, configuredPlaceholder));
+    }
+
+    private String formatCurrencyLine(String configPath, String fallback, String value) {
+        String format = getConfig().getString(configPath, fallback);
+        return format.replace("{value}", value);
     }
 
     private void hideNumbersEverywhere(Objective objective, Scoreboard scoreboard) {
