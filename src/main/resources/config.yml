@@ -3,3 +3,13 @@ update-ticks: 20
 
 # Заголовок sidebar
 title: "&x&8&9&C&F&F&F&l✦ Профиль ✦"
+
+# Настройка валют и внешнего вида их строк в sidebar
+# {value} будет заменено на значение placeholder.
+currency:
+  gold:
+    placeholder: "%ecoplugin_gold%"
+    format: "&7Золото: &6{value}"
+  shards:
+    placeholder: "%ecoplugin_shards%"
+    format: "&7Осколки хаоса: &d{value}"
