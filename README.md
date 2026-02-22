@@ -1,4 +1,4 @@
-# ClassSidebar (Paper 1.20.6 + PlaceholderAPI 2.12.2)
+# ClassSidebar (Paper 1.21.1 + PlaceholderAPI 2.12.2)
 
 Компактный и современный правый sidebar для Minecraft сервера.
 
@@ -37,7 +37,7 @@ mvn package
 ## Установка
 
 1. Установи на сервер:
-   - Paper/Spigot 1.20.6+
+   - Paper/Spigot 1.21.1+
    - PlaceholderAPI 2.12.2+
 2. Положи jar этого плагина в папку `plugins/`.
 3. Перезапусти сервер.
