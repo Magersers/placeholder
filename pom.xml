@@ -12,7 +12,7 @@
     <description>Compact modern sidebar with PlaceholderAPI class placeholders</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
